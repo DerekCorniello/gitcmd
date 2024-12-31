@@ -1,5 +1,8 @@
 use std::io::{self, Write};
 
+mod parser;
+use crate::parser::parse_line;
+
 fn main() {
     loop {
         print!("gitcmd > ");
@@ -37,7 +40,6 @@ fn main() {
             break;
         }
 
-        // Placeholder: Process input (to be implemented)
-        println!("You entered: {}", input);
+        parse_line(input.to_string())
     }
 }
