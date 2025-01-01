@@ -1,5 +1,7 @@
 use std::io::{self, Write};
+
 use std::process::{Command, Stdio};
+use regex::Regex;
 
 pub fn parse_and_execute_line(mut line: String) -> bool {
     // Check if the line starts with "git "
@@ -8,8 +10,16 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
         line = trimmed.to_string(); // Update `line` to be the string without the "git " prefix
     }
 
-    // Split the input line by whitespace into a vector of arguments
-    let args: Vec<&str> = line.split_whitespace().collect();
+    // Regex to match either:
+    // - Non-whitespace characters (word arguments)
+    // - Or a quoted string (arguments inside double quotes)
+    let re = Regex::new(r#""([^"]*)"|\S+"#).unwrap();
+    
+    // Find all the matches of words or quoted strings
+    let args: Vec<String> = re
+        .find_iter(&line)
+        .map(|mat| mat.as_str().trim_matches('"').to_string()) // Remove quotes from matched strings
+        .collect();
 
     // If there is no command, just return
     if args.is_empty() {
@@ -30,10 +40,7 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     }
 
     // Execute the git command
-    let output = command
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output();
+    let output = command.stdout(Stdio::piped()).stderr(Stdio::piped()).output();
 
     match output {
         Ok(output) => {
@@ -55,28 +62,12 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
                 }
             } else {
                 // If command fails, print the stderr output
-                let stderr_output = String::from_utf8_lossy(&output.stderr);
-
-                // Split the stderr output by lines
-                for line in stderr_output.lines() {
-                    // Ensure the cursor is at the beginning of the line before printing
-                    if let Err(e) = write!(io::stdout(), "\r\x1b[K") {
-                        eprintln!("Failed to reset cursor position: {}", e);
-                    }
-
-                    // Print each line of the stderr output, ensuring it's aligned
-                    if let Err(e) = writeln!(io::stdout(), "{}", line) {
-                        eprintln!("Failed to write to stdout: {}", e);
-                    }
-                }
-
-                // Ensure we flush after printing the stderr content
-                if let Err(e) = io::stdout().flush() {
-                    eprintln!("Failed to flush stdout: {}", e);
-                }
+                eprintln!(
+                    "Command failed with error: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
             }
         }
-
         Err(e) => {
             // Handle the error if the command fails to execute
             eprintln!("Failed to run the command: {}", e);
