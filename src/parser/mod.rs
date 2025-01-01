@@ -1,7 +1,9 @@
-use std::io::{self, Write};
-
-use std::process::{Command, Stdio};
 use regex::Regex;
+use std::io::{self, Write};
+use std::process::{Command, Stdio};
+
+// Directly import the function from the config module
+use crate::config::setup_git_conf_profile;
 
 pub fn parse_and_execute_line(mut line: String) -> bool {
     // Check if the line starts with "git "
@@ -14,7 +16,7 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     // - Non-whitespace characters (word arguments)
     // - Or a quoted string (arguments inside double quotes)
     let re = Regex::new(r#""([^"]*)"|\S+"#).unwrap();
-    
+
     // Find all the matches of words or quoted strings
     let args: Vec<String> = re
         .find_iter(&line)
@@ -25,6 +27,8 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     if args.is_empty() {
         println!("\r\n");
         return false;
+    } else if args.len() == 1 && args[0] == "setup" {
+        setup_git_conf_profile();
     }
 
     // Create the command and add the common arguments
@@ -40,7 +44,10 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     }
 
     // Execute the git command
-    let output = command.stdout(Stdio::piped()).stderr(Stdio::piped()).output();
+    let output = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output();
 
     match output {
         Ok(output) => {

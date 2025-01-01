@@ -3,6 +3,7 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
+mod config;
 mod parser;
 use crate::parser::parse_and_execute_line;
 
