@@ -74,7 +74,7 @@ fn main() -> io::Result<()> {
                 }
                 Key::Ctrl('c') => {
                     // Handle Ctrl+C to exit
-                    writeln!(stdout, "\r\nExiting...")?;
+                    writeln!(stdout, "\r\n\nExiting...\r\n")?;
                     return Ok(());
                 }
                 _ => {}
@@ -83,7 +83,7 @@ fn main() -> io::Result<()> {
 
         let input = input_line.trim();
         if input == "exit" {
-            writeln!(stdout, "\r\nExiting...")?;
+            writeln!(stdout, "\r\nExiting...\r\n")?;
             break;
         }
 
