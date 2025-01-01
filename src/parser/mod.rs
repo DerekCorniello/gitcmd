@@ -11,28 +11,35 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     // Split the input line by whitespace into a vector of arguments
     let args: Vec<&str> = line.split_whitespace().collect();
 
-    // If there is no command, just newline
+    // If there is no command, just return
     if args.is_empty() {
         println!("\r\n");
         return false;
     }
 
-    // Execute the git command
-    let command = Command::new("git")
+    // Create the command and add the common arguments
+    let mut command = Command::new("git");
+    command
         .arg("-c")
         .arg("color.ui=always") // Force git to always use color
-        .arg("--no-pager") // Prevent pager from stripping color
-        .arg(&line) // Add the line (git subcommand, e.g., "status")
-        .stdout(Stdio::piped()) // Capture the output
-        .stderr(Stdio::piped()) // Capture error output
+        .arg("--no-pager"); // Prevent pager from stripping color
+
+    // Add each argument from the line
+    for arg in args {
+        command.arg(arg);
+    }
+
+    // Execute the git command
+    let output = command
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .output();
 
-    match command {
+    match output {
         Ok(output) => {
             // Ensure the cursor is at the beginning of the line before printing
             if let Err(e) = write!(io::stdout(), "\r\n\x1b[K") {
                 eprintln!("Failed to write to stdout: {}", e);
-                return false;
             }
 
             if output.status.success() {
@@ -41,25 +48,38 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
                 for line in stdout.lines() {
                     if let Err(e) = writeln!(io::stdout(), "\r\x1b[K{}", line) {
                         eprintln!("Failed to write to stdout: {}", e);
-                        return false;
                     }
                 }
                 if let Err(e) = io::stdout().flush() {
                     eprintln!("Failed to flush stdout: {}", e);
-                    return false;
                 }
             } else {
                 // If command fails, print the stderr output
-                eprintln!(
-                    "Command failed with error: {}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
+                let stderr_output = String::from_utf8_lossy(&output.stderr);
+
+                // Split the stderr output by lines
+                for line in stderr_output.lines() {
+                    // Ensure the cursor is at the beginning of the line before printing
+                    if let Err(e) = write!(io::stdout(), "\r\x1b[K") {
+                        eprintln!("Failed to reset cursor position: {}", e);
+                    }
+
+                    // Print each line of the stderr output, ensuring it's aligned
+                    if let Err(e) = writeln!(io::stdout(), "{}", line) {
+                        eprintln!("Failed to write to stdout: {}", e);
+                    }
+                }
+
+                // Ensure we flush after printing the stderr content
+                if let Err(e) = io::stdout().flush() {
+                    eprintln!("Failed to flush stdout: {}", e);
+                }
             }
         }
+
         Err(e) => {
             // Handle the error if the command fails to execute
             eprintln!("Failed to run the command: {}", e);
-            return false;
         }
     }
 
