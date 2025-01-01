@@ -1,7 +1,7 @@
 use std::io::{self, Write};
 
 mod parser;
-use crate::parser::parse_line;
+use crate::parser::execute_line;
 
 fn main() {
     loop {
@@ -39,7 +39,7 @@ fn main() {
         if input == "exit" {
             break;
         }
-
-        parse_line(input.to_string())
+        println!();
+        execute_line(input.to_string())
     }
 }
