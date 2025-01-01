@@ -1,14 +1,14 @@
 use std::io::{self, Write};
 use std::process::{Command, Stdio};
 
-pub fn execute_line(line: String) {
+pub fn execute_line(line: String) -> bool {
     // Split the input line by whitespace
     let args: Vec<&str> = line.split_whitespace().collect();
 
     // Check if any of the words is "git"
     if args.contains(&"git") {
         println!("This is the gitcmd line, don't need that funny word");
-        return;
+        return false;
     }
 
     let command = Command::new("git")
@@ -39,4 +39,6 @@ pub fn execute_line(line: String) {
             eprintln!("Failed to run the command: {}", e);
         }
     }
+
+    true
 }

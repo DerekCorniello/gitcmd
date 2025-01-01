@@ -4,6 +4,7 @@ mod parser;
 use crate::parser::execute_line;
 
 fn main() {
+    let mut prev_commands: Vec<String> = Vec::new();
     loop {
         print!("gitcmd > ");
 
@@ -40,6 +41,8 @@ fn main() {
             break;
         }
         println!();
-        execute_line(input.to_string())
+        if execute_line(input.to_string()) {
+            prev_commands.push(input.to_string())
+        }
     }
 }
