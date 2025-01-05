@@ -2,7 +2,6 @@ use std::io::{self, Write};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-
 mod config;
 mod parser;
 use crate::parser::parse_and_execute_line;
@@ -10,41 +9,66 @@ use crate::parser::parse_and_execute_line;
 fn main() -> io::Result<()> {
     let mut prev_commands: Vec<String> = Vec::new();
     let mut history_index: Option<usize> = None;
-
     let stdin = io::stdin();
-    let stdout = io::stdout().into_raw_mode()?; // Enable raw mode
-    let mut stdout = io::BufWriter::new(stdout); // Use buffered output for efficiency
-    let mut keys = stdin.keys(); // Create the keys iterator once
+    let stdout = io::stdout().into_raw_mode()?;
+    let mut stdout = io::BufWriter::new(stdout);
+    let mut keys = stdin.keys();
 
     loop {
         write!(stdout, "\r\ngitcmd > ")?;
         stdout.flush()?;
-
         let mut input_line = String::new();
+        let mut cursor_pos = 0;
 
         for key in keys.by_ref() {
             match key? {
                 Key::Char('\n') => {
-                    // Enter key: process the command
                     writeln!(stdout)?;
                     break;
                 }
                 Key::Char(c) => {
-                    // Regular character: add to input
-                    input_line.push(c);
-                    write!(stdout, "{}", c)?;
+                    // Insert character at cursor position
+                    input_line.insert(cursor_pos, c);
+                    cursor_pos += 1;
+                    
+                    // Redraw the line from cursor position
+                    write!(stdout, "{}", &input_line[cursor_pos-1..])?;
+                    
+                    // Move cursor back to the correct position if we're not at the end
+                    if cursor_pos < input_line.len() {
+                        write!(stdout, "\x1b[{}D", input_line.len() - cursor_pos)?;
+                    }
                     stdout.flush()?;
                 }
                 Key::Backspace => {
-                    // Backspace: remove the last character
-                    if !input_line.is_empty() {
-                        input_line.pop();
-                        write!(stdout, "\x08 \x08")?; // Move cursor back, overwrite with space, move back again
+                    if cursor_pos > 0 {
+                        cursor_pos -= 1;
+                        input_line.remove(cursor_pos);
+                        
+                        // Move cursor back and redraw the rest of the line
+                        write!(stdout, "\x08")?;  // Move back one
+                        write!(stdout, "{} ", &input_line[cursor_pos..])?;  // Redraw rest of line plus space
+                        
+                        // Move cursor back to the correct position
+                        write!(stdout, "\x1b[{}D", input_line.len() - cursor_pos + 1)?;
+                        stdout.flush()?;
+                    }
+                }
+                Key::Left => {
+                    if cursor_pos > 0 {
+                        cursor_pos -= 1;
+                        write!(stdout, "\x1b[D")?;  // Move cursor left
+                        stdout.flush()?;
+                    }
+                }
+                Key::Right => {
+                    if cursor_pos < input_line.len() {
+                        cursor_pos += 1;
+                        write!(stdout, "\x1b[C")?;  // Move cursor right
                         stdout.flush()?;
                     }
                 }
                 Key::Up => {
-                    // Up arrow: browse history
                     if let Some(index) = history_index {
                         if index > 0 {
                             history_index = Some(index - 1);
@@ -54,12 +78,12 @@ fn main() -> io::Result<()> {
                     }
                     if let Some(index) = history_index {
                         input_line = prev_commands[index].clone();
-                        write!(stdout, "\r\x1b[Kgitcmd > {}", input_line)?; // Clear line and reprint prompt with input
+                        cursor_pos = input_line.len();  // Move cursor to end of line
+                        write!(stdout, "\r\x1b[Kgitcmd > {}", input_line)?;
                         stdout.flush()?;
                     }
                 }
                 Key::Down => {
-                    // Down arrow: browse history forward
                     if let Some(index) = history_index {
                         if index + 1 < prev_commands.len() {
                             history_index = Some(index + 1);
@@ -70,13 +94,12 @@ fn main() -> io::Result<()> {
                     input_line = history_index
                         .map(|index| prev_commands[index].clone())
                         .unwrap_or_default();
-                    write!(stdout, "\r\x1b[Kgitcmd > {}", input_line)?; // Clear line and reprint prompt with input
+                    cursor_pos = input_line.len();  // Move cursor to end of line
+                    write!(stdout, "\r\x1b[Kgitcmd > {}", input_line)?;
                     stdout.flush()?;
                 }
                 Key::Ctrl('c') => {
-                    // Handle Ctrl+C to exit
-                    writeln!(stdout, "\r\n\nExiting...\r\n")?;
-                    return Ok(());
+                    break;
                 }
                 _ => {}
             }
@@ -87,20 +110,14 @@ fn main() -> io::Result<()> {
             writeln!(stdout, "\r\nExiting...\r\n")?;
             break;
         }
-
         if !input.is_empty() {
-            // Clear the current prompt line before executing commands
-            write!(stdout, "\r\x1b[K")?; // This clears the line properly
+            write!(stdout, "\r\x1b[K")?;
             stdout.flush()?;
-
-            // Execute the command line and print output line by line
             if parse_and_execute_line(input.to_string()) {
                 prev_commands.push(input.to_string());
             }
         }
-
-        history_index = None; // Reset history browsing index after command execution
+        history_index = None;
     }
-
     Ok(())
 }
