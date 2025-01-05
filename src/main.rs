@@ -1,4 +1,5 @@
 use std::io::{self, Write};
+use std::time::{Duration, Instant};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -13,6 +14,10 @@ fn main() -> io::Result<()> {
     let stdout = io::stdout().into_raw_mode()?;
     let mut stdout = io::BufWriter::new(stdout);
     let mut keys = stdin.keys();
+
+    // Add variables to track Ctrl-C timing
+    let mut last_ctrl_c: Option<Instant> = None;
+    let ctrl_c_timeout = Duration::from_millis(500); // Adjust timeout as needed
 
     loop {
         write!(stdout, "\r\ngitcmd > ")?;
@@ -99,14 +104,25 @@ fn main() -> io::Result<()> {
                     stdout.flush()?;
                 }
                 Key::Ctrl('c') => {
-                    break;
+                    let now = Instant::now();
+                    
+                    if let Some(last_time) = last_ctrl_c {
+                        if now.duration_since(last_time) < ctrl_c_timeout {
+                            // Double Ctrl-C detected within timeout
+                            writeln!(stdout, "\r\nExiting...\r\n")?;
+                            return Ok(());
+                        }
+                    }
+                    
+                    // Update last Ctrl-C time
+                    last_ctrl_c = Some(now);
                 }
                 _ => {}
             }
         }
 
         let input = input_line.trim();
-        if input == "exit" {
+        if input == "exit" || input == "quit" {
             writeln!(stdout, "\r\nExiting...\r\n")?;
             break;
         }

@@ -1,8 +1,6 @@
 use regex::Regex;
 use std::io::{self, Write};
 use std::process::{Command, Stdio};
-
-// Directly import the function from the config module
 use crate::config::setup_git_conf_profile;
 
 pub fn parse_and_execute_line(mut line: String) -> bool {
@@ -16,7 +14,7 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
     // - Non-whitespace characters (word arguments)
     // - Or a quoted string (arguments inside double quotes)
     let re = Regex::new(r#""([^"]*)"|\S+"#).unwrap();
-
+    
     // Find all the matches of words or quoted strings
     let args: Vec<String> = re
         .find_iter(&line)
@@ -64,22 +62,26 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
                         eprintln!("Failed to write to stdout: {}", e);
                     }
                 }
-                if let Err(e) = io::stdout().flush() {
-                    eprintln!("Failed to flush stdout: {}", e);
-                }
             } else {
-                // If command fails, print the stderr output
-                eprintln!(
-                    "Command failed with error: {}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
+                // If command fails, print the stderr output with proper cursor handling
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                for line in stderr.lines() {
+                    if let Err(e) = writeln!(io::stdout(), "\r\x1b[K{}", line) {
+                        eprintln!("Failed to write to stdout: {}", e);
+                    }
+                }
+            }
+
+            if let Err(e) = io::stdout().flush() {
+                eprintln!("Failed to flush stdout: {}", e);
             }
         }
         Err(e) => {
             // Handle the error if the command fails to execute
-            eprintln!("Failed to run the command: {}", e);
+            if let Err(write_err) = writeln!(io::stdout(), "\r\x1b[KFailed to run the command: {}", e) {
+                eprintln!("Failed to write to stdout: {}", write_err);
+            }
         }
     }
-
     true
 }
