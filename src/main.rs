@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
             Some(input) => {
                 prev_commands.push(input.clone());
                 input
-            },
+            }
             None => {
                 input_handler.write_line("\r\nExiting...\r\n")?;
                 break;
@@ -36,6 +36,20 @@ fn main() -> io::Result<()> {
             prev_commands.push(input.to_string());
         }
         history_index = None;
+        let mut index = 1;
+        while index < prev_commands.len() {
+            if prev_commands[index] == prev_commands[index - 1] {
+                // if an element is removed because it is the same,
+                // the remaining elements shift left, so the next element
+                // after the one that was removed will automatically be at
+                // the same index, which ensures that it gets checked.
+                // this is safe
+                prev_commands.remove(index);
+            } else {
+                // only move forward when no removal happens
+                index += 1;
+            }
+        }
     }
 
     Ok(())

@@ -155,7 +155,6 @@ impl<W: Write> InputHandler<W> {
                         }
 
                         if let Some(index) = current_index {
-                            // Clear current line
                             write!(self.stdout, "\r\x1b[K{}", prompt)?;
                             input_line = history[*index].clone();
                             cursor_pos = input_line.len();
