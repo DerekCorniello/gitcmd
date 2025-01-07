@@ -4,3 +4,11 @@
 Cargo.lock
 
 **/*.rs.bk
+
+# project specific
+
+gitcmd.conf
+**/gitcmd.conf
+
+.gitconfig
+**/.gitconfig

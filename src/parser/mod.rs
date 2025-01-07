@@ -27,6 +27,7 @@ pub fn parse_and_execute_line(mut line: String) -> bool {
         return false;
     } else if args.len() == 1 && args[0] == "setup" {
         setup_git_conf_profile();
+        return true;
     }
 
     // Create the command and add the common arguments
