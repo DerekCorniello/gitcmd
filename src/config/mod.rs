@@ -157,10 +157,68 @@ impl GitConfig {
         }
     }
 
-    pub fn display(&self) -> io::Result<()> {
-        let mut input_handler = InputHandler::new_raw()?;
-        let mut commands: Vec<String> = Vec::new();
+
+    pub fn set_import_options(&self) -> Vec<String> {
+        let mut input_handler = InputHandler::new_raw().unwrap();
+        let mut config_scope: Vec<String> = Vec::new();  // To store the selected scopes
+        let mut input: String;
+
+        input_handler.clear_screen().unwrap();
+        input_handler.write_str(
+            "Would you like to import your existing .gitconfig files?\r\n\
+                Enter a list of the following choices:\r\n\
+                \t1. local\r\n\
+                \t2. global\r\n\
+                \t3. system\r\n\
+                Or just press enter to start fresh!\r\n",
+        ).unwrap();
+
+        loop {
+            input = input_handler.read_line("Please enter a choice (1, 2, 3 or press Enter to start fresh):").unwrap().unwrap();
+
+            if input.trim().is_empty() {
+                // If input is empty, start fresh
+                break;
+            }
+
+            let choices = input.split(',').map(|s| s.trim()).collect::<Vec<&str>>();
+
+            // Ensure that all the choices are valid
+            let mut valid_choices = true;
+            for choice in &choices {
+                match *choice {
+                    "1" => config_scope.push("local".to_string()),
+                    "2" => config_scope.push("global".to_string()),
+                    "3" => config_scope.push("system".to_string()),
+                    _ => {
+                        valid_choices = false;
+                        break;
+                    }
+                }
+            }
+
+            if valid_choices {
+                break;
+            } else {
+                input_handler.write_str("Invalid input. Please enter a valid list (1, 2, 3) or press Enter to start fresh.\r\n").unwrap();
+            }
+        }
+
+        if config_scope.is_empty() {
+            input_handler.write_str("Starting fresh without importing any .gitconfig files.\r\n").unwrap();
+        } else {
+            input_handler.write_str(&format!(
+                "You selected the following scopes: {:?}\r\n",
+                config_scope
+            )).unwrap();
+        }
+
+        config_scope
+    }
+
+    pub fn set_creation_scope(&self) -> String {
         let mut config_scope: String = String::new();
+        let mut input_handler = InputHandler::new_raw().unwrap();
 
         input_handler.clear_screen().unwrap();
         input_handler.write_str(
@@ -189,6 +247,17 @@ impl GitConfig {
                 }
             }
         }
+        config_scope
+    }
+
+    pub fn display(&self) -> io::Result<()> {
+        let mut input_handler = InputHandler::new_raw()?;
+        let mut commands: Vec<String> = Vec::new();
+
+        let import_scope: Vec<String> = self.set_import_options();
+        // todo get the actual scope values
+
+        let config_scope: String = self.set_creation_scope();
 
         for setting in &self.settings {
             input_handler.write_line("<-- gitcmd Setup -->\n")?;

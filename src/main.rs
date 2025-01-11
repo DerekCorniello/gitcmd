@@ -1,9 +1,10 @@
 use std::io;
 mod config;
+mod config_io;
 mod input_handler;
-mod parser;
+mod input_parser;
 use crate::input_handler::InputHandler;
-use crate::parser::parse_and_execute_line;
+use crate::input_parser::parse_and_execute_line;
 
 fn main() -> io::Result<()> {
     let mut prev_commands: Vec<String> = Vec::new();
