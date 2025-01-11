@@ -6,7 +6,7 @@ struct GitConfigEntry {
     example: String,
     description: String,
     possibles: Vec<String>,
-    command: String, // Command template with `{}` placeholder
+    command: String,
 }
 
 struct GitConfig {
