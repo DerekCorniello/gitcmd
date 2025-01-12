@@ -1,9 +1,12 @@
 use crate::config_io::{
-    import_git_config, source_gitcmd_conf, write_gitcmd_conf,
-    GitCmdAlias, GitCmdConfig, GitConfig,
+    import_git_config, source_gitcmd_conf, write_gitcmd_conf, GitCmdAlias, GitCmdConfig, GitConfig,
 };
 use crate::input_handler::InputHandler;
+
 use std::io;
+use std::fs;
+use std::path::PathBuf;
+use dirs::home_dir;
 
 struct GitConfigEntry {
     title: String,
@@ -184,8 +187,12 @@ impl GitConfigSettings {
                 .unwrap();
 
             match raw_input {
-                Some(val) => { input = val; },
-                None => { return Vec::new();}
+                Some(val) => {
+                    input = val;
+                }
+                None => {
+                    return Vec::new();
+                }
             }
 
             let choices = input.split(',').map(|s| s.trim()).collect::<Vec<&str>>();
@@ -275,8 +282,8 @@ impl GitConfigSettings {
 
         // Import existing settings if requested
         let mut import_scope = self.set_import_options();
-        if import_scope.is_empty()  {
-            return Ok(())
+        if import_scope.is_empty() {
+            return Ok(());
         }
         if import_scope.contains(&"none".to_string()) {
             import_scope = Vec::new();
@@ -406,6 +413,19 @@ impl GitConfigSettings {
 }
 
 pub fn setup_git_conf_profile() {
+    let home_dir = home_dir().expect("Unable to determine home directory");
+    let config_path: PathBuf = home_dir.join(".gitcmd");
+
+    if !config_path.exists() {
+        println!("Creating configuration file at: {:?}", config_path);
+        let default_config = "[settings]\nkey=value\n";
+
+        if let Err(e) = fs::write(&config_path, default_config) {
+            eprintln!("Failed to create configuration file: {}", e);
+        } else {
+            println!("Configuration file created successfully.");
+        }
+    }
     let config = GitConfigSettings::new();
     config.display().unwrap();
 }

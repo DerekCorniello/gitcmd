@@ -14,3 +14,4 @@ path = "src/main.rs"
 [dependencies]
 termion = "1.5"
 regex = "1.5"
+dirs = "4.0"

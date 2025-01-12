@@ -22,7 +22,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, BufReader, Write};
 use std::process::Command;
 
-const CONFIG_FILE: &str = "gitcmd.conf";
+const CONFIG_FILE: &str = "~/.config/gitcmd/gitcmd.conf";
 
 #[derive(Debug, Clone)]
 pub struct GitCmdAlias {

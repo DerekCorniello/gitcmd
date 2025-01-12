@@ -29,6 +29,10 @@ pub fn terminal_loop() -> io::Result<()> {
             input_handler.write_line("\r\nExiting...\r\n")?;
             break;
         }
+
+        if input == "clear" || input == "cls" {
+            input_handler.clear_screen().unwrap();
+        }
         if !input.is_empty() && parse_and_execute_line(input.to_string()) {
             prev_commands.push(input.to_string());
         }
