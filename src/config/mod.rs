@@ -275,13 +275,10 @@ impl GitConfigSettings {
 
         // Import existing settings if requested
         let mut import_scope = self.set_import_options();
-        input_handler.write_line("import_scope set").unwrap();
         if import_scope.is_empty()  {
-            input_handler.write_line("import_scope is empty").unwrap();
             return Ok(())
         }
         if import_scope.contains(&"none".to_string()) {
-            input_handler.write_line("import_scope is contains none").unwrap();
             import_scope = Vec::new();
         }
         let import_settings = import_git_config(import_scope).unwrap_or_default();

@@ -1,57 +1,42 @@
-use std::io;
+use std::env;
+use std::process;
+
 mod config;
 mod config_io;
 mod input_handler;
 mod input_parser;
-use crate::input_handler::InputHandler;
-use crate::input_parser::parse_and_execute_line;
+mod terminal;
 
-fn main() -> io::Result<()> {
-    let mut prev_commands: Vec<String> = Vec::new();
-    let mut history_index: Option<usize> = None;
-    let mut input_handler = InputHandler::new_raw()?;
+fn print_usage() {
+    println!("GitCmd - Git Configuration Manager");
+    println!("\nUsage:");
+    println!("  gitcmd");
+    println!("      Starts the gitcmd terminal");
+    println!("  gitcmd <command>");
+    println!("      setup     Run the configuration wizard");
+    println!("      help      Show this help message");
+}
 
-    loop {
-        println!();
-        let input = match input_handler.read_line_with_history(
-            "\rgitcmd > ",
-            &prev_commands,
-            &mut history_index,
-        )? {
-            Some(input) => {
-                prev_commands.push(input.clone());
-                input
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    
+    if args.len() == 1 {
+        terminal::terminal_loop().unwrap();
+    } else {
+        match args[1].as_str() {
+            "setup" => {
+                config::setup_git_conf_profile();
             }
-            None => {
-                input_handler.write_line("\r\nExiting...\r\n")?;
-                break;
+            "help" => {
+                print_usage();
             }
-        };
-
-        let input = input.trim();
-        if input == "exit" || input == "quit" {
-            input_handler.write_line("\r\nExiting...\r\n")?;
-            break;
-        }
-        if !input.is_empty() && parse_and_execute_line(input.to_string()) {
-            prev_commands.push(input.to_string());
-        }
-        history_index = None;
-        let mut index = 1;
-        while index < prev_commands.len() {
-            if prev_commands[index] == prev_commands[index - 1] {
-                // if an element is removed because it is the same,
-                // the remaining elements shift left, so the next element
-                // after the one that was removed will automatically be at
-                // the same index, which ensures that it gets checked.
-                // this is safe
-                prev_commands.remove(index);
-            } else {
-                // only move forward when no removal happens
-                index += 1;
+            _ => {
+                println!("Unknown command: {}", args[1]);
+                print_usage();
+                process::exit(1);
             }
         }
     }
 
-    Ok(())
+    process::exit(0)
 }
