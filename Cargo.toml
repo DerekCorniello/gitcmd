@@ -2,6 +2,14 @@
 name = "gitcmd"
 version = "0.1.0"
 edition = "2021"
+description = "A Git command-line toolkit"
+authors = ["Derek Corniello <corniej@mail.uc.edu>"]
+license = "MIT"
+repository = "https://github.com/DerekCorniello/gitcmd"
+
+[[bin]]
+name = "gitcmd"
+path = "src/main.rs"
 
 [dependencies]
 termion = "1.5"
