@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "A Git command-line toolkit"
 authors = ["Derek Corniello <corniej@mail.uc.edu>"]
-license = "Apache 2"
+license = "Apache-2.0"
 repository = "https://github.com/DerekCorniello/gitcmd"
 
 [[bin]]
