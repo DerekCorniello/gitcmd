@@ -1,8 +1,4 @@
-![](https://img.shields.io/crates/v/gitcmd.svg)
-![](https://img.shields.io/crates/l/gitcmd.svg)
-![](https://img.shields.io/crates/d/gitcmd.svg)
-![](https://img.shields.io/docsrs/gitcmd.svg)
-
+![](https://img.shields.io/badge/Rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)
 # gitcmd - Git Configuration Manager
 
 gitcmd is a terminal-based tool designed to simplify the management of Git configurations and settings. It provides an interactive shell for executing Git commands and features a configuration setup wizard to customize your Git experience.
@@ -26,6 +22,8 @@ gitcmd is made for people of all experience levels! Whether you need help settin
 
 ### Steps
 
+#### Using Git
+
 1. Clone the repository:
    ```
    git clone https://github.com/DerekCorniello/gitcmd.git
@@ -43,6 +41,13 @@ gitcmd is made for people of all experience levels! Whether you need help settin
    export PATH=$PATH:/path/to/gitcmd/target/release
    ```
    Replace `/path/to/gitcmd` with the actual path to the project.
+
+#### Using Cargo
+
+Simply do:
+    ```
+    cargo install gitcmd
+    ```
 
 ## Usage
 

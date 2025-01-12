@@ -1,6 +1,6 @@
 [package]
 name = "gitcmd"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "A Git command-line toolkit"
 authors = ["Derek Corniello <corniej@mail.uc.edu>"]
