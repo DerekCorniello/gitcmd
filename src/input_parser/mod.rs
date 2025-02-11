@@ -18,7 +18,7 @@ pub fn parse_and_execute_line(line: String) -> bool {
         // Regex to match either:
         // - Non-whitespace characters (word arguments)
         // - Or a quoted string (arguments inside double quotes)
-        let re = Regex::new(r#""([^"]*)"|\S+"#).unwrap();
+        let re = Regex::new(r#""([^"]*)"|\S+"#).expect("FATAL: Failed to execute regex operation.");
 
         // Find all the matches of words or quoted strings
         let args: Vec<String> = re

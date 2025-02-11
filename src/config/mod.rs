@@ -3,10 +3,10 @@ use crate::config_io::{
 };
 use crate::input_handler::InputHandler;
 
-use std::io;
-use std::fs;
-use std::path::PathBuf;
 use dirs::home_dir;
+use std::fs;
+use std::io;
+use std::path::PathBuf;
 
 struct GitConfigEntry {
     title: String,
@@ -165,11 +165,14 @@ impl GitConfigSettings {
     }
 
     pub fn set_import_options(&self) -> Vec<String> {
-        let mut input_handler = InputHandler::new_raw().unwrap();
+        let mut input_handler =
+            InputHandler::new_raw().expect("FATAL: Failed to create input handler.");
         let mut config_scope: Vec<String> = Vec::new(); // To store the selected scopes
         let mut input: String;
 
-        input_handler.clear_screen().unwrap();
+        input_handler
+            .clear_screen()
+            .expect("FATAL: Failed to clear screen.");
         input_handler
             .write_str(
                 "Would you like to import your existing .gitconfig files?\r\n\
@@ -184,7 +187,7 @@ impl GitConfigSettings {
         loop {
             let raw_input = input_handler
                 .read_line("Please enter a choice (1, 2, 3 or 4): ")
-                .unwrap();
+                .expect("FATAL: Failed to read from stdin.");
 
             match raw_input {
                 Some(val) => {
@@ -215,21 +218,21 @@ impl GitConfigSettings {
             if valid_choices {
                 break;
             } else {
-                input_handler.write_str("Invalid input. Please enter a valid list (1, 2, 3) or press Enter to start fresh.\r\n").unwrap();
+                input_handler.write_str("Invalid input. Please enter a valid list (1, 2, 3) or press Enter to start fresh.\r\n").expect("FATAL: Failed to write to stdout.");
             }
         }
 
         if config_scope.is_empty() {
             input_handler
                 .write_str("Starting fresh without importing any .gitconfig files.\r\n")
-                .unwrap();
+                .expect("FATAL: Failed to write to stdout.");
         } else {
             input_handler
                 .write_str(&format!(
                     "You selected the following scopes: {:?}\r\n",
                     config_scope
                 ))
-                .unwrap();
+                .expect("FATAL: Failed to write to stdout.");
         }
 
         config_scope
@@ -237,9 +240,12 @@ impl GitConfigSettings {
 
     pub fn set_creation_scope(&self) -> String {
         let mut config_scope: String = String::new();
-        let mut input_handler = InputHandler::new_raw().unwrap();
+        let mut input_handler =
+            InputHandler::new_raw().expect("FATAL: Failed to create input handler.");
 
-        input_handler.clear_screen().unwrap();
+        input_handler
+            .clear_screen()
+            .expect("FATAL: Failed to clear screen.");
         input_handler
             .write_str(
                 "Choose the scope of your setup:\r\n\
@@ -247,7 +253,7 @@ impl GitConfigSettings {
             \tglobal: the config for your user, across all repos \r\n\
             \tsystem: the config for all users, across all users and repos\r\n\n",
             )
-            .unwrap();
+            .expect("FATAL: Failed to write to stdout.");
 
         loop {
             let scope_input =
@@ -262,7 +268,7 @@ impl GitConfigSettings {
                     } else {
                         input_handler
                             .write_str(&format!("Invalid input `{}`.\r\n", config_scope))
-                            .unwrap();
+                            .expect("FATAL: Failed to write to stdout.");
                     }
                 }
                 Ok(None) => {
@@ -427,5 +433,7 @@ pub fn setup_git_conf_profile() {
         }
     }
     let config = GitConfigSettings::new();
-    config.display().unwrap();
+    config
+        .display()
+        .expect("FATAL: Unable to write config to stdout.");
 }

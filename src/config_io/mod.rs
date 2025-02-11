@@ -132,16 +132,21 @@ impl GitCmdConfig {
 }
 
 pub fn source_command(command: &str) {
-    let output = Command::new("sh").arg("-c").arg(command).output().unwrap();
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(command)
+        .output()
+        .expect("FATAL: Failed to write terminal command.");
 
-    let mut input_handler = InputHandler::new_raw().unwrap();
+    let mut input_handler =
+        InputHandler::new_raw().expect("FATAL: Failed to create input handler.");
     if !output.status.success() {
         input_handler
             .write_line(&format!(
                 "Failed to execute command to get configs: {}",
                 String::from_utf8_lossy(&output.stderr)
             ))
-            .unwrap();
+            .expect("FATAL: Failed to write to stdout.");
     }
 }
 
@@ -164,7 +169,7 @@ pub fn import_git_config(scopes: Vec<String>) -> Result<Vec<GitConfig>, std::io:
         } else {
             None
         };
-        
+
         match proceed {
             Some(true) => {
                 for scope in &scopes {
@@ -193,7 +198,7 @@ pub fn import_git_config(scopes: Vec<String>) -> Result<Vec<GitConfig>, std::io:
             None => {
                 input_handler
                     .write_line("\nInvalid Input, please input 'Y' or 'N'.")
-                    .unwrap();
+                    .expect("FATAL: Failed to write to stdout.");
             }
         }
     }

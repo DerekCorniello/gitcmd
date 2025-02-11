@@ -21,7 +21,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     
     if args.len() == 1 {
-        terminal::terminal_loop().unwrap();
+        terminal::terminal_loop().expect("FATAL: Failed to send stdin to tool.");
     } else {
         match args[1].as_str() {
             "setup" => {
