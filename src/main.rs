@@ -14,18 +14,22 @@ fn print_usage() {
     println!("      Starts the gitcmd terminal");
     println!("  gitcmd <command>");
     println!("      setup     Run the configuration wizard");
+    println!("      edit      Edit existing git configuration");
     println!("      help      Show this help message");
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() == 1 {
         terminal::terminal_loop().expect("FATAL: Failed to send stdin to tool.");
     } else {
         match args[1].as_str() {
             "setup" => {
                 config::setup_git_conf_profile();
+            }
+            "edit" => {
+                config::edit_git_conf_profile();
             }
             "help" => {
                 print_usage();

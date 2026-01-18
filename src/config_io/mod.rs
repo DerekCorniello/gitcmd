@@ -270,3 +270,15 @@ pub fn source_gitcmd_conf() -> Option<io::Error> {
         Err(e) => Some(e),
     }
 }
+
+pub fn get_git_config_value(scope: &str, identifier: &str) -> Option<String> {
+    let cmd = format!("git config --{} {} --get", scope, identifier);
+    let output = Command::new("sh").arg("-c").arg(cmd).output().ok()?;
+
+    if output.status.success() {
+        let value = String::from_utf8_lossy(&output.stdout);
+        Some(value.trim().to_string())
+    } else {
+        None
+    }
+}

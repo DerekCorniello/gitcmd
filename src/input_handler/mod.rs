@@ -213,7 +213,8 @@ impl<W: Write> InputHandler<W> {
 impl InputHandler<RawTerminal<io::Stdout>> {
     pub fn new_raw() -> io::Result<Self> {
         Ok(InputHandler {
-            stdout: io::stdout().into_raw_mode()?, last_ctrl_c: false,
+            stdout: io::stdout().into_raw_mode()?,
+            last_ctrl_c: false,
         })
     }
 }

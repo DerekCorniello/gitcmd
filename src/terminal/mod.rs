@@ -1,6 +1,6 @@
-use std::io;
 use crate::input_handler::InputHandler;
 use crate::input_parser::parse_and_execute_line;
+use std::io;
 
 pub fn terminal_loop() -> io::Result<()> {
     let mut prev_commands: Vec<String> = Vec::new();
@@ -31,7 +31,9 @@ pub fn terminal_loop() -> io::Result<()> {
         }
 
         if input == "clear" || input == "cls" {
-            input_handler.clear_screen().expect("FATAL: Failed to clear screen!");
+            input_handler
+                .clear_screen()
+                .expect("FATAL: Failed to clear screen!");
         }
         if !input.is_empty() && parse_and_execute_line(input.to_string()) {
             prev_commands.push(input.to_string());

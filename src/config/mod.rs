@@ -4,7 +4,6 @@ use crate::config_io::{
 use crate::input_handler::InputHandler;
 
 use dirs::home_dir;
-use std::fs;
 use std::io;
 use std::path::PathBuf;
 
@@ -281,76 +280,110 @@ impl GitConfigSettings {
         }
         config_scope
     }
-    pub fn display(&self) -> io::Result<()> {
+    pub fn display(&self, edit_mode: bool, target_scope: &str) -> io::Result<()> {
+        use crate::config_io::get_git_config_value;
+
         let mut input_handler = InputHandler::new_raw()?;
         let mut git_configs: Vec<GitConfig> = Vec::new();
         let mut git_cmd_aliases: Vec<GitCmdAlias> = Vec::new();
 
-        // Import existing settings if requested
-        let mut import_scope = self.set_import_options();
-        if import_scope.is_empty() {
-            return Ok(());
-        }
-        if import_scope.contains(&"none".to_string()) {
-            import_scope = Vec::new();
-        }
-        let import_settings = import_git_config(import_scope).unwrap_or_default();
-        let config_scope: String = self.set_creation_scope();
-        if config_scope.is_empty() {
-            return Ok(());
+        let config_scope: String;
+
+        if edit_mode {
+            if target_scope.is_empty() {
+                config_scope = self.set_creation_scope();
+                if config_scope.is_empty() {
+                    return Ok(());
+                }
+            } else {
+                config_scope = target_scope.to_string();
+            }
+        } else {
+            let mut import_scope = self.set_import_options();
+            if import_scope.is_empty() {
+                return Ok(());
+            }
+            if import_scope.contains(&"none".to_string()) {
+                import_scope = Vec::new();
+            }
+            let _import_settings = import_git_config(import_scope).unwrap_or_default();
+            config_scope = self.set_creation_scope();
+            if config_scope.is_empty() {
+                return Ok(());
+            }
         }
 
-        // Create a map of existing settings for easy lookup
-        let existing_settings: std::collections::HashMap<String, String> = import_settings
-            .iter()
-            .map(|config| (config.identifier.clone(), config.value.clone()))
-            .collect();
+        input_handler.clear_screen()?;
 
-        // Process each setting
         for setting in &self.settings {
-            input_handler.write_line("<-- gitcmd Setup -->\n")?;
+            let header = if edit_mode {
+                "<-- gitcmd Edit -->"
+            } else {
+                "<-- gitcmd Setup -->"
+            };
+            input_handler.write_line(header)?;
             input_handler.write_line(&format!("\rSetting: {}", setting.title))?;
             input_handler.write_line(&format!("\rDescription: {}", setting.description))?;
 
-            // Show current value if it exists
-            if let Some(current_value) = existing_settings.get(&setting.identifier) {
-                input_handler.write_line(&format!("\rCurrent value: {}", current_value))?;
+            let current_value = get_git_config_value(&config_scope, &setting.identifier);
+
+            if let Some(ref val) = current_value {
+                input_handler.write_line(&format!("\rCurrent value: {}", val))?;
             }
 
             input_handler.write_line(&format!("\rExample: {}", setting.example))?;
             input_handler.write_line(&format!("\rExample values: {:?}", setting.possibles))?;
 
-            // Prompt for input
-            let default_value = existing_settings
-                .get(&setting.identifier)
-                .unwrap_or(&setting.example)
-                .clone();
+            let default_value = current_value
+                .as_ref()
+                .cloned()
+                .unwrap_or_else(|| setting.example.clone());
 
-            let prompt = format!(
-                "\rPlease choose a value (or press Enter to use '{}'): ",
-                default_value
-            );
+            if edit_mode {
+                let prompt = format!("\r[Enter] to keep '{}', or type new value: ", default_value);
+                let input = input_handler.read_line(&prompt)?;
 
-            let input = input_handler.read_line(&prompt);
-
-            let value_to_use = match input {
-                Ok(Some(input)) => {
-                    if input.trim().is_empty() {
-                        default_value
-                    } else {
-                        input
+                let value_to_use = match input {
+                    Some(input) => {
+                        if input.trim().is_empty() {
+                            if let Some(ref val) = current_value {
+                                val.clone()
+                            } else {
+                                setting.example.clone()
+                            }
+                        } else {
+                            input.trim().to_string()
+                        }
                     }
-                }
-                Ok(None) => return Ok(()),
-                Err(_) => return Ok(()),
-            };
+                    None => return Ok(()),
+                };
 
-            // Create GitConfig for this setting
-            git_configs.push(GitConfig::new(&setting.identifier, &value_to_use));
+                if value_to_use != default_value || current_value.is_none() {
+                    git_configs.push(GitConfig::new(&setting.identifier, &value_to_use));
+                }
+            } else {
+                let prompt = format!(
+                    "\rPlease choose a value (or press Enter to use '{}'): ",
+                    default_value
+                );
+                let input = input_handler.read_line(&prompt)?;
+
+                let value_to_use = match input {
+                    Some(input) => {
+                        if input.trim().is_empty() {
+                            default_value
+                        } else {
+                            input
+                        }
+                    }
+                    None => return Ok(()),
+                };
+
+                git_configs.push(GitConfig::new(&setting.identifier, &value_to_use));
+            }
             input_handler.clear_screen()?;
         }
 
-        // Prompt for git aliases
         if let Ok(Some(input)) =
             input_handler.read_line("Would you like to set up git aliases? (Y/N): ")
         {
@@ -374,14 +407,12 @@ impl GitConfigSettings {
             }
         }
 
-        // Create the final config
         let config = GitCmdConfig {
             scope: config_scope.clone(),
             git_configs,
             git_cmds: git_cmd_aliases,
         };
 
-        // Confirm before applying changes
         loop {
             let input = input_handler
                 .read_line("\nNote: this will update your git configuration. Proceed (Y/N)? ")?
@@ -389,13 +420,11 @@ impl GitConfigSettings {
 
             match input.trim().to_uppercase().as_str() {
                 "Y" | "" => {
-                    // Write the configuration file
                     if let Some(err) = write_gitcmd_conf(&config) {
                         input_handler.write_line(&format!("Error writing config: {}", err))?;
                         return Ok(());
                     }
 
-                    // Source the configuration
                     if let Some(err) = source_gitcmd_conf() {
                         input_handler.write_line(&format!("Error applying config: {}", err))?;
                         return Ok(());
@@ -420,20 +449,67 @@ impl GitConfigSettings {
 
 pub fn setup_git_conf_profile() {
     let home_dir = home_dir().expect("Unable to determine home directory");
-    let config_path: PathBuf = home_dir.join(".gitcmd");
+    let config_path: PathBuf = home_dir.join(".config/gitcmd/gitcmd.conf");
 
-    if !config_path.exists() {
-        println!("Creating configuration file at: {:?}", config_path);
-        let default_config = "[settings]\nkey=value\n";
+    if config_path.exists() {
+        let mut input_handler =
+            InputHandler::new_raw().expect("FATAL: Failed to create input handler.");
 
-        if let Err(e) = fs::write(&config_path, default_config) {
-            eprintln!("Failed to create configuration file: {}", e);
-        } else {
-            println!("Configuration file created successfully.");
+        input_handler
+            .clear_screen()
+            .expect("FATAL: Failed to clear screen.");
+        input_handler
+            .write_str(
+                "Found existing gitcmd configuration.\r\n\
+            \r\n\
+            (E)dit existing configuration\r\n\
+            (S)tart fresh (clear and create new)\r\n\
+            \r\n",
+            )
+            .expect("FATAL: Failed to write to stdout.");
+
+        loop {
+            let input = input_handler
+                .read_line("Please enter 'E' or 'S': ")
+                .expect("FATAL: Failed to read from stdin.");
+
+            match input {
+                Some(val) => {
+                    let val = val.trim().to_uppercase();
+                    if val == "E" {
+                        let config = GitConfigSettings::new();
+                        config
+                            .display(true, "")
+                            .expect("FATAL: Unable to write config to stdout.");
+                        return;
+                    } else if val == "S" {
+                        let config = GitConfigSettings::new();
+                        config
+                            .display(false, "")
+                            .expect("FATAL: Unable to write config to stdout.");
+                        return;
+                    } else {
+                        input_handler
+                            .write_str("Invalid input. Please enter 'E' or 'S'.\r\n")
+                            .expect("FATAL: Failed to write to stdout.");
+                    }
+                }
+                None => {
+                    return;
+                }
+            }
         }
     }
+
     let config = GitConfigSettings::new();
     config
-        .display()
+        .display(false, "")
         .expect("FATAL: Unable to write config to stdout.");
+}
+
+pub fn edit_git_conf_profile() {
+    let config = GitConfigSettings::new();
+    config
+        .display(true, "")
+        .expect("FATAL: Unable to edit config to stdout.");
 }
